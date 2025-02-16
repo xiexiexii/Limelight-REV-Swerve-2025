@@ -176,6 +176,6 @@ public final class Constants {
   }
 
   public static final class LocalizationConstants {
-    public static final Pose2d kRedReefKL = new Pose2d(new Translation2d(13.97, 1.97), new Rotation2d(Units.degreesToRadians(112)));  
+    public static final Pose2d kRedReefKL = new Pose2d(13.97, 1.97, Rotation2d.fromDegrees(112));  
   }
 }

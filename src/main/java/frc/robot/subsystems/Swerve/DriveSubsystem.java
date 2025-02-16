@@ -4,11 +4,16 @@
 
 package frc.robot.subsystems.Swerve;
 
+import java.util.List;
+
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import com.pathplanner.lib.path.GoalEndState;
 import com.pathplanner.lib.path.PathConstraints;
+import com.pathplanner.lib.path.PathPlannerPath;
+import com.pathplanner.lib.path.Waypoint;
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
 
@@ -27,6 +32,7 @@ import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.VisionConstants;
 import frc.robot.subsystems.Limelight.LimelightHelpers;
@@ -81,9 +87,9 @@ public class DriveSubsystem extends SubsystemBase {
   public static int AllianceYaw;
 
   // Swerve PoseEstimator - Tracks robot pose
-  SwerveDrivePoseEstimator m_poseEstimator = new SwerveDrivePoseEstimator(
+  private SwerveDrivePoseEstimator m_poseEstimator = new SwerveDrivePoseEstimator(
     DriveConstants.kDriveKinematics, 
-    Rotation2d.fromDegrees(m_gyro.getYaw()), 
+    Rotation2d.fromDegrees(-m_gyro.getYaw()), 
     new SwerveModulePosition[] {
       m_frontLeft.getPosition(),
       m_frontRight.getPosition(),
@@ -148,11 +154,15 @@ public class DriveSubsystem extends SubsystemBase {
         m_frontRight.getPosition(),
         m_backLeft.getPosition(),
         m_backRight.getPosition()
-      });
+      }
+    );
+    
+    // Updates using LL
+    updateVisionMeasurements();
 
-      // Puts Yaw + Angle on Smart Dashboard
-      SmartDashboard.putNumber("NavX Yaw", -m_gyro.getYaw());
-      SmartDashboard.putNumber("NavX Angle", m_gyro.getAngle());
+    // Puts Yaw + Angle on Smart Dashboard
+    SmartDashboard.putNumber("NavX Yaw", -m_gyro.getYaw());
+    SmartDashboard.putNumber("NavX Angle", m_gyro.getAngle());
   }
 
   // Updates poseEstimate with the Limelight Readings using MT2 
@@ -198,14 +208,50 @@ public class DriveSubsystem extends SubsystemBase {
       && estimate.avgTagDist < VisionConstants.kRejectionDistance;
   }
 
-  // Since AutoBuilder is configured, we can use it to build pathfinding commands
+  // TODO: [NOT CONFIRMED] Pathfinds to pose and avoids obstacles in the way
   public void pathfindToPose(Pose2d targetPose, PathConstraints constraints) {
-    AutoBuilder.pathfindToPose(
-      targetPose,
-      constraints,
-      0.0 // Goal end velocity in meters/sec
-    ).schedule();
+    Command pathfindingCommand = AutoBuilder.pathfindToPose(
+      targetPose, 
+      constraints, 
+      0.0
+    );
+    pathfindingCommand.schedule();
   } 
+
+   // TODO: [NOT CONFIRMED] Pathfinds to path and then follows that path
+   public void pathfindThenFollowPath(String path, PathConstraints constraints) {
+    try {
+      PathPlannerPath m_path = PathPlannerPath.fromPathFile(path);
+      Command pathfindingCommand = AutoBuilder.pathfindThenFollowPath(
+      m_path, 
+      constraints
+    );
+    pathfindingCommand.schedule();
+    }
+    catch(Exception e) {
+      e.printStackTrace();
+    }
+  } 
+
+  // Drives to pose in the shortest way possible without considering obstacles
+  public void goToDesiredPose(Pose2d desiredPose){
+
+    // Create a list of waypoints from poses. Each pose represents one waypoint.
+    // The rotation component of the pose should be the direction of travel. Do not use holonomic rotation.
+    List<Waypoint> waypoints = PathPlannerPath.waypointsFromPoses(
+      getPose(),
+      desiredPose
+    );
+
+    // Create the path using the waypoints created above
+    PathPlannerPath path = new PathPlannerPath(
+      waypoints,
+      AutoConstants.kconstraints,
+      null, // The ideal starting state, this is only relevant for pre-planned paths, so can be null for on-the-fly paths.
+      new GoalEndState(0, desiredPose.getRotation()) 
+    );
+    AutoBuilder.followPath(path).schedule();
+  }
 
   // Returns currently estimated pose of robot
   public Pose2d getPose() {
@@ -249,7 +295,7 @@ public class DriveSubsystem extends SubsystemBase {
         xSpeedDelivered, 
         ySpeedDelivered, 
         rotDelivered,
-        Rotation2d.fromDegrees(m_gyro.getAngle())
+        Rotation2d.fromDegrees(-m_gyro.getYaw())
       ) : new ChassisSpeeds(xSpeedDelivered, ySpeedDelivered, rotDelivered));
     
     // Ensures wheel speed are physically attainable
@@ -327,7 +373,7 @@ public class DriveSubsystem extends SubsystemBase {
 
   // Return Robot Headings, from -180 to 180 degrees
   public double getHeading() {
-    return Rotation2d.fromDegrees(m_gyro.getYaw()).getDegrees();
+    return Rotation2d.fromDegrees(-m_gyro.getYaw()).getDegrees();
   }
 
   // Returns Robot Turn Rate, in degrees per second

@@ -2,7 +2,7 @@ package frc.robot.utils;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
-// Makes life infinitely easier TODO: Check implementation
+// Makes life infinitely easier
 public class SmartDashboardNumber {
 
   // Init stuff

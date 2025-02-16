@@ -52,12 +52,12 @@ public class AimNRangeReefRightCommand extends Command {
     // Update BotPoseTargetSpace
     botPoseTargetSpace = NetworkTableInstance.getDefault().getTable(VisionConstants.kLimelightName).getEntry("botposeTargetspace").getDoubleArray(new double[6]);
 
-    // Sets up a valid tag
-    validTag = (int) LimelightHelpers.getFiducialID(VisionConstants.kLimelightName);
+    // Sets up a valid tag (Don't use?)
+    // validTag = (int) LimelightHelpers.getFiducialID(VisionConstants.kLimelightName);
 
-    // Checks for TIV
+    // Checks for TIV: Needs to have valid tag, closer than kTZValidRange, angle less than kYawValidRange
     tiv = LimelightHelpers.getTV(VisionConstants.kLimelightName) 
-      && botPoseTargetSpace[2] > VisionConstants.kTZValidRange 
+      && botPoseTargetSpace[2] > VisionConstants.kTZValidRange // TODO: Check this!!!
       && Math.abs(botPoseTargetSpace[4])< VisionConstants.kYawValidRange;
 
     // Timer Reset
@@ -72,7 +72,7 @@ public class AimNRangeReefRightCommand extends Command {
     botPoseTargetSpace = NetworkTableInstance.getDefault().getTable(VisionConstants.kLimelightName).getEntry("botposeTargetspace").getDoubleArray(new double[6]);
 
     // If tags are in view, drive right over!
-    if (LimelightHelpers.getFiducialID(VisionConstants.kLimelightName) == validTag) m_driveSubsystem.drive(limelightRange_PID(), limelightStrafe_PID(), limelightAim_PID(), false);
+    if (LimelightHelpers.getTV(VisionConstants.kLimelightName)) m_driveSubsystem.drive(limelightRange_PID(), limelightStrafe_PID(), limelightAim_PID(), false);
 
     // Otherwise we tell it to quit
     else tiv = false;
@@ -81,20 +81,20 @@ public class AimNRangeReefRightCommand extends Command {
   // Add stuff we do after to reset here (a.k.a tag filters)
   public void end(boolean interrupted) {}
 
-  // Are we done yet? Finishes when threshold is reached or if no tag in view or if timer is reached 
+  // Are we done yet? Finishes when threshold is reached or if no tag in view or if timer is reached TODO: Confirm values are still accurate 
   public boolean isFinished() {
     return (
       // Range (Distance to Tag)
       botPoseTargetSpace[2] < VisionConstants.kRangeReefRightThresholdMax
-      && botPoseTargetSpace[2]  > VisionConstants.kRangeReefRightThresholdMin
+      && botPoseTargetSpace[2] > VisionConstants.kRangeReefRightThresholdMin
       
       // Aim (Angle)
-      && botPoseTargetSpace[4]  < VisionConstants.kAimReefRightThresholdMax
-      && botPoseTargetSpace[4]  > VisionConstants.kAimReefRightThresholdMin
+      && botPoseTargetSpace[4] < VisionConstants.kAimReefRightThresholdMax
+      && botPoseTargetSpace[4] > VisionConstants.kAimReefRightThresholdMin
 
       // Strafe (Left Right Positioning)
-      && botPoseTargetSpace[0]  < VisionConstants.kStrafeReefRightThresholdMax
-      && botPoseTargetSpace[0]  > VisionConstants.kStrafeReefRightThresholdMin)
+      && botPoseTargetSpace[0] < VisionConstants.kStrafeReefRightThresholdMax
+      && botPoseTargetSpace[0] > VisionConstants.kStrafeReefRightThresholdMin)
 
       // Other quit conditions
       || !tiv || timer.get() > 3;
