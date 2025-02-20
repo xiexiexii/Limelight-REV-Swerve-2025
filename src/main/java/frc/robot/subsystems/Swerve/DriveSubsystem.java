@@ -22,6 +22,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -29,6 +30,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.VisionConstants;
+import frc.robot.commands.AimNRangeReefRightCommand;
 import frc.robot.subsystems.Limelight.LimelightHelpers;
 import frc.robot.subsystems.Limelight.Localization;
 
@@ -83,7 +85,7 @@ public class DriveSubsystem extends SubsystemBase {
   // Swerve PoseEstimator - Tracks robot pose
   SwerveDrivePoseEstimator m_poseEstimator = new SwerveDrivePoseEstimator(
     DriveConstants.kDriveKinematics, 
-    Rotation2d.fromDegrees(m_gyro.getYaw()), 
+    Rotation2d.fromDegrees(-m_gyro.getYaw()), 
     new SwerveModulePosition[] {
       m_frontLeft.getPosition(),
       m_frontRight.getPosition(),
@@ -153,6 +155,9 @@ public class DriveSubsystem extends SubsystemBase {
       // Puts Yaw + Angle on Smart Dashboard
       SmartDashboard.putNumber("NavX Yaw", -m_gyro.getYaw());
       SmartDashboard.putNumber("NavX Angle", m_gyro.getAngle());
+      SmartDashboard.putNumberArray("Bot Pose Target Space", NetworkTableInstance.getDefault().getTable(VisionConstants.kLimelightName).getEntry("botpose_targetspace").getDoubleArray(new double[6]));
+      SmartDashboard.putNumber("Bot Pose 4", NetworkTableInstance.getDefault().getTable(VisionConstants.kLimelightName).getEntry("botpose_targetspace").getDoubleArray(new double[6])[4]);
+      SmartDashboard.putBoolean(VisionConstants.kLimelightName + "-tag-in-vision", LimelightHelpers.getTV(VisionConstants.kLimelightName));
   }
 
   // Updates poseEstimate with the Limelight Readings using MT2 
@@ -249,7 +254,7 @@ public class DriveSubsystem extends SubsystemBase {
         xSpeedDelivered, 
         ySpeedDelivered, 
         rotDelivered,
-        Rotation2d.fromDegrees(m_gyro.getAngle())
+        Rotation2d.fromDegrees(-m_gyro.getYaw())
       ) : new ChassisSpeeds(xSpeedDelivered, ySpeedDelivered, rotDelivered));
     
     // Ensures wheel speed are physically attainable
@@ -327,8 +332,9 @@ public class DriveSubsystem extends SubsystemBase {
 
   // Return Robot Headings, from -180 to 180 degrees
   public double getHeading() {
-    return Rotation2d.fromDegrees(m_gyro.getYaw()).getDegrees();
+    return Rotation2d.fromDegrees(-m_gyro.getYaw()).getDegrees();
   }
+
 
   // Returns Robot Turn Rate, in degrees per second
   public double getTurnRate() {
