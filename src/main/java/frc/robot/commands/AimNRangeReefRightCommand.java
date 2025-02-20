@@ -57,9 +57,9 @@ public class AimNRangeReefRightCommand extends Command {
     // Sets up a valid tag
     // validTag = (int) LimelightHelpers.getFiducialID(VisionConstants.kLimelightName);
 
-    // Checks for TIV
+    // Checks for TIV: Needs to have valid tag, closer than kTZValidRange, angle less than kYawValidRange
     tiv = LimelightHelpers.getTV(VisionConstants.kLimelightName) 
-      && botPoseTargetSpace[2] > VisionConstants.kTZValidRange 
+      && botPoseTargetSpace[2] > VisionConstants.kTZValidRange // TODO: Check this!!!
       && Math.abs(botPoseTargetSpace[4])< VisionConstants.kYawValidRange;
 
     // Timer Reset
@@ -82,7 +82,7 @@ public class AimNRangeReefRightCommand extends Command {
   // Add stuff we do after to reset here (a.k.a tag filters)
   public void end(boolean interrupted) {}
 
-  // Are we done yet? Finishes when threshold is reached or if no tag in view or if timer is reached 
+  // Are we done yet? Finishes when threshold is reached or if no tag in view or if timer is reached TODO: Confirm values are still accurate 
   public boolean isFinished() {
     return (
       // Range (Distance to Tag)
