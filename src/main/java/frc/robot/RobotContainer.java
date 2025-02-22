@@ -10,6 +10,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.LocalizationConstants;
+import frc.robot.commands.AimCommand;
 import frc.robot.commands.AimNRangeReefLeftCommand;
 import frc.robot.commands.AimNRangeReefRightCommand;
 import frc.robot.commands.LEDColorChangeCommand;
@@ -81,7 +82,11 @@ public class RobotContainer {
     new JoystickButton(m_driverController.getHID(), ControllerConstants.kA)
       .whileTrue(new RunCommand(() -> m_robotDrive.setX(), m_robotDrive)
     );
-
+    // Aim Command - B
+    new POVButton(m_driverController.getHID(), ControllerConstants.kB)
+    .onTrue(
+      new AimCommand(m_robotDrive)
+    );
     // Goes to Red Reef KL - Y
     new JoystickButton(m_driverController.getHID(), ControllerConstants.kY)
     .onTrue(
