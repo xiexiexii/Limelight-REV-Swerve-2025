@@ -121,15 +121,15 @@ public final class Constants {
     public static final String kLimelightName = "limelight-three";
 
     // PID for Tag Relative Control in General
-    public static final double kPAim = 0.04;
+    public static final double kPAim = 0.06;
     public static final double kIAim = 0.000;
-    public static final double kDAim = 0.000;
+    public static final double kDAim = 0.008;
 
-    public static final double kPRange = 0.13;
+    public static final double kPRange = 0.14;
     public static final double kIRange = 0.0;
     public static final double kDRange = 0.0;
 
-    public static final double kPStrafe = 0.13;
+    public static final double kPStrafe = 0.22;
     public static final double kIStrafe = 0.0;
     public static final double kDStrafe = 0.0;
 
@@ -140,32 +140,26 @@ public final class Constants {
     public static final double kRangeTarget = -4;
 
     public static final double kTZValidRange = -1.5;
-    public static final double kYawValidRange = 35;
+    public static final double kYawValidRange = 30;
 
     // AimNRange Reef Right
-    public static final double kAimReefRightThresholdMax = 0.5;
-    public static final double kAimReefRightThresholdMin = -0.5;
+    public static final double kAimReefRightErrorLimit = 0.5;
     public static final double kAimReefRightTarget = 0;
 
-    public static final double kRangeReefRightThresholdMax = -0.63;
-    public static final double kRangeReefRightThresholdMin = -0.68;
-    public static final double kRangeReefRightTarget = -0.65;
+    public static final double kRangeReefRightErrorLimit = 0.025;
+    public static final double kRangeReefRightTarget = -0.67;
 
-    public static final double kStrafeReefRightThresholdMax = 0.20;
-    public static final double kStrafeReefRightThresholdMin = 0.15;
-    public static final double kStrafeReefRightTarget = 0.18;
+    public static final double kStrafeReefRightErrorLimit = 0.025;
+    public static final double kStrafeReefRightTarget = 0.10;
 
     // AimNRange Reef Left
-    public static final double kAimReefLeftThresholdMax = 0.5;
-    public static final double kAimReefLeftThresholdMin = -0.5;
+    public static final double kAimReefLeftErrorLimit = 0.5;
     public static final double kAimReefLeftTarget = 0;
 
-    public static final double kRangeReefLeftThresholdMax = -0.63;
-    public static final double kRangeReefLeftThresholdMin = -0.68;
-    public static final double kRangeReefLeftTarget = -0.65;
+    public static final double kRangeReefLeftErrorLimit = 0.025;
+    public static final double kRangeReefLeftTarget = -0.67;
 
-    public static final double kStrafeReefLeftThresholdMax = -0.15;
-    public static final double kStrafeReefLeftThresholdMin = -0.20;
+    public static final double kStrafeReefLeftErrorLimit = 0.025;
     public static final double kStrafeReefLeftTarget = -0.18;
 
     // Tag Reject Distance

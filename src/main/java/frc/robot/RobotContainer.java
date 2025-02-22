@@ -11,6 +11,7 @@ import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.ControllerConstants;
 import frc.robot.Constants.LocalizationConstants;
 import frc.robot.commands.AimCommand;
+import frc.robot.commands.AimCommand;
 import frc.robot.commands.AimNRangeReefLeftCommand;
 import frc.robot.commands.AimNRangeReefRightCommand;
 import frc.robot.commands.LEDColorChangeCommand;
@@ -87,10 +88,16 @@ public class RobotContainer {
     .onTrue(
       new AimCommand(m_robotDrive)
     );
-    // Goes to Red Reef KL - Y
-    new JoystickButton(m_driverController.getHID(), ControllerConstants.kY)
+    // // Goes to Red Reef KL - Y
+    // new JoystickButton(m_driverController.getHID(), ControllerConstants.kY)
+    // .onTrue(
+    //   new InstantCommand(() -> m_robotDrive.pathfindToPose(LocalizationConstants.kRedReefKL, AutoConstants.kconstraints), m_robotDrive)
+    // );
+
+    // Just Aim - Y
+    new POVButton(m_driverController.getHID(), ControllerConstants.kY)
     .onTrue(
-      new InstantCommand(() -> m_robotDrive.pathfindToPose(LocalizationConstants.kRedReefKL, AutoConstants.kconstraints), m_robotDrive)
+      new AimCommand(m_robotDrive)
     );
 
     // AimNRange Reef Right - D-Pad Right

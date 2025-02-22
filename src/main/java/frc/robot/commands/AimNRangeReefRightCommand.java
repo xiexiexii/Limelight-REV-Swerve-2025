@@ -3,6 +3,7 @@ package frc.robot.commands;
 import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.VisionConstants;
@@ -50,9 +51,10 @@ public class AimNRangeReefRightCommand extends Command {
     LimelightHelpers.SetFiducialIDFiltersOverride(VisionConstants.kLimelightName, validIDs);
 
     // Update BotPoseTargetSpace
-    botPoseTargetSpace = NetworkTableInstance.getDefault().getTable(VisionConstants.kLimelightName).getEntry("botposeTargetspace").getDoubleArray(new double[6]);
-
-    // Sets up a valid tag (Don't use?)
+    botPoseTargetSpace = NetworkTableInstance.getDefault().getTable(VisionConstants.kLimelightName).getEntry("botpose_targetspace").getDoubleArray(new double[6]);
+    
+    
+    // Sets up a valid tag
     // validTag = (int) LimelightHelpers.getFiducialID(VisionConstants.kLimelightName);
 
     // Checks for TIV: Needs to have valid tag, closer than kTZValidRange, angle less than kYawValidRange
@@ -69,13 +71,12 @@ public class AimNRangeReefRightCommand extends Command {
   public void execute() {
 
     // Update the pose from NetworkTables (Limelight Readings)
-    botPoseTargetSpace = NetworkTableInstance.getDefault().getTable(VisionConstants.kLimelightName).getEntry("botposeTargetspace").getDoubleArray(new double[6]);
+    botPoseTargetSpace = NetworkTableInstance.getDefault().getTable(VisionConstants.kLimelightName).getEntry("botpose_targetspace").getDoubleArray(new double[6]);
 
-    // If tags are in view, drive right over!
-    if (LimelightHelpers.getTV(VisionConstants.kLimelightName)) m_driveSubsystem.drive(limelightRange_PID(), limelightStrafe_PID(), limelightAim_PID(), false);
-
-    // Otherwise we tell it to quit
-    else tiv = false;
+    if (tiv){
+      tiv = LimelightHelpers.getTV(VisionConstants.kLimelightName);
+      m_driveSubsystem.drive(limelightRange_PID(), limelightStrafe_PID(), limelightAim_PID(), false);
+    }
   }
 
   // Add stuff we do after to reset here (a.k.a tag filters)
@@ -85,19 +86,14 @@ public class AimNRangeReefRightCommand extends Command {
   public boolean isFinished() {
     return (
       // Range (Distance to Tag)
-      botPoseTargetSpace[2] < VisionConstants.kRangeReefRightThresholdMax
-      && botPoseTargetSpace[2] > VisionConstants.kRangeReefRightThresholdMin
-      
+      Math.abs(botPoseTargetSpace[2]-VisionConstants.kRangeReefRightTarget) < VisionConstants.kRangeReefRightErrorLimit &&
       // Aim (Angle)
-      && botPoseTargetSpace[4] < VisionConstants.kAimReefRightThresholdMax
-      && botPoseTargetSpace[4] > VisionConstants.kAimReefRightThresholdMin
-
-      // Strafe (Left Right Positioning)
-      && botPoseTargetSpace[0] < VisionConstants.kStrafeReefRightThresholdMax
-      && botPoseTargetSpace[0] > VisionConstants.kStrafeReefRightThresholdMin)
-
+      Math.abs(botPoseTargetSpace[4]-VisionConstants.kAimReefRightTarget)  < VisionConstants.kAimReefRightErrorLimit &&
+      // Strafe (Right Right Positioning)
+      Math.abs(botPoseTargetSpace[0]-VisionConstants.kStrafeReefRightTarget)  < VisionConstants.kStrafeReefRightErrorLimit)
       // Other quit conditions
       || !tiv || timer.get() > 3;
+
   }
 
   // Advanced PID-assisted ranging control with Limelight's TZ value from target-relative data
@@ -110,7 +106,7 @@ public class AimNRangeReefRightCommand extends Command {
     double targetingForwardSpeed = mRangeController.calculate(botPoseTargetSpace[2] - VisionConstants.kRangeReefRightTarget);
 
     // Value scale up to robot max speed and invert (double cannot exceed 1.0)
-    targetingForwardSpeed *= -1.0 * DriveConstants.kMaxSpeedMetersPerSecond;
+    targetingForwardSpeed *= 1.0 * DriveConstants.kMaxSpeedMetersPerSecond;
 
     // Hooray
     return targetingForwardSpeed;
@@ -126,7 +122,7 @@ public class AimNRangeReefRightCommand extends Command {
     double targetingStrafeSpeed = mStrafeController.calculate(botPoseTargetSpace[0] - VisionConstants.kStrafeReefRightTarget);
 
     // Value scale up to robot max speed (Double can't exceed 1.0)
-    targetingStrafeSpeed *= 1.0 * DriveConstants.kMaxSpeedMetersPerSecond;
+    targetingStrafeSpeed *= -0.7 * DriveConstants.kMaxSpeedMetersPerSecond;
 
     // Hooray
     return targetingStrafeSpeed;
@@ -140,7 +136,7 @@ public class AimNRangeReefRightCommand extends Command {
     
     // Calculates response based on difference in angle from tag to robot
     double targetingAngularVelocity = mAimController.calculate(botPoseTargetSpace[4] - VisionConstants.kAimReefRightTarget);
-
+    
     // Multiply by -1 because robot is CCW Positive. Multiply by a reduction 
     // multiplier to reduce speed. Scale TX up with robot speed.
     targetingAngularVelocity *= -0.1 * DriveConstants.kMaxAngularSpeed;

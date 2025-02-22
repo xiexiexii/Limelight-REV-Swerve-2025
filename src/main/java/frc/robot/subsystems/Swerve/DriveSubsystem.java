@@ -27,6 +27,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
+import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -35,6 +36,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.VisionConstants;
+import frc.robot.commands.AimNRangeReefRightCommand;
 import frc.robot.subsystems.Limelight.LimelightHelpers;
 import frc.robot.subsystems.Limelight.Localization;
 
@@ -160,9 +162,12 @@ public class DriveSubsystem extends SubsystemBase {
     // Updates using LL
     updateVisionMeasurements();
 
-    // Puts Yaw + Angle on Smart Dashboard
-    SmartDashboard.putNumber("NavX Yaw", -m_gyro.getYaw());
-    SmartDashboard.putNumber("NavX Angle", m_gyro.getAngle());
+      // Puts Yaw + Angle on Smart Dashboard
+      SmartDashboard.putNumber("NavX Yaw", -m_gyro.getYaw());
+      SmartDashboard.putNumber("NavX Angle", m_gyro.getAngle());
+      SmartDashboard.putNumberArray("Bot Pose Target Space", NetworkTableInstance.getDefault().getTable(VisionConstants.kLimelightName).getEntry("botpose_targetspace").getDoubleArray(new double[6]));
+      SmartDashboard.putNumber("Bot Pose 4", NetworkTableInstance.getDefault().getTable(VisionConstants.kLimelightName).getEntry("botpose_targetspace").getDoubleArray(new double[6])[4]);
+      SmartDashboard.putBoolean(VisionConstants.kLimelightName + "-tag-in-vision", LimelightHelpers.getTV(VisionConstants.kLimelightName));
   }
 
   // Updates poseEstimate with the Limelight Readings using MT2 
@@ -375,6 +380,7 @@ public class DriveSubsystem extends SubsystemBase {
   public double getHeading() {
     return Rotation2d.fromDegrees(-m_gyro.getYaw()).getDegrees();
   }
+
 
   // Returns Robot Turn Rate, in degrees per second
   public double getTurnRate() {
