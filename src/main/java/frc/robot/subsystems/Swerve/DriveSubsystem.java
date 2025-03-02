@@ -5,7 +5,6 @@
 package frc.robot.subsystems.Swerve;
 
 import java.util.List;
-
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
@@ -27,7 +26,6 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
-import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -36,10 +34,9 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
 import frc.robot.Constants.VisionConstants;
-import frc.robot.commands.AimNRangeReefRightCommand;
 import frc.robot.subsystems.Limelight.LimelightHelpers;
 import frc.robot.subsystems.Limelight.Localization;
-
+//liam reddy was here
 // Drive Subsystem Class yay
 public class DriveSubsystem extends SubsystemBase {
 
@@ -163,11 +160,11 @@ public class DriveSubsystem extends SubsystemBase {
     updateVisionMeasurements();
 
       // Puts Yaw + Angle on Smart Dashboard
-      SmartDashboard.putNumber("NavX Yaw", -m_gyro.getYaw());
-      SmartDashboard.putNumber("NavX Angle", m_gyro.getAngle());
-      SmartDashboard.putNumberArray("Bot Pose Target Space", NetworkTableInstance.getDefault().getTable(VisionConstants.kLimelightName).getEntry("botpose_targetspace").getDoubleArray(new double[6]));
-      SmartDashboard.putNumber("Bot Pose 4", NetworkTableInstance.getDefault().getTable(VisionConstants.kLimelightName).getEntry("botpose_targetspace").getDoubleArray(new double[6])[4]);
-      SmartDashboard.putBoolean(VisionConstants.kLimelightName + "-tag-in-vision", LimelightHelpers.getTV(VisionConstants.kLimelightName));
+      // SmartDashboard.putNumber("NavX Yaw", -m_gyro.getYaw());
+      // SmartDashboard.putNumber("NavX Angle", m_gyro.getAngle());
+      // SmartDashboard.putNumberArray("Bot Pose Target Space", NetworkTableInstance.getDefault().getTable(VisionConstants.kLimelightName).getEntry("botpose_targetspace").getDoubleArray(new double[6]));
+      // SmartDashboard.putNumber("Bot Pose 4", NetworkTableInstance.getDefault().getTable(VisionConstants.kLimelightName).getEntry("botpose_targetspace").getDoubleArray(new double[6])[4]);
+      // SmartDashboard.putBoolean(VisionConstants.kLimelightName + "-tag-in-vision", LimelightHelpers.getTV(VisionConstants.kLimelightName));
   }
 
   // Updates poseEstimate with the Limelight Readings using MT2 
