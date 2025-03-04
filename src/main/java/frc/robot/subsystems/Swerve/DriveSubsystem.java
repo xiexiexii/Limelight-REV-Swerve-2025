@@ -5,10 +5,17 @@
 package frc.robot.subsystems.Swerve;
 
 import java.util.List;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+
 import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.commands.PathfindingCommand;
 import com.pathplanner.lib.config.PIDConstants;
 import com.pathplanner.lib.config.RobotConfig;
 import com.pathplanner.lib.controllers.PPHolonomicDriveController;
+import com.pathplanner.lib.controllers.PPLTVController;
+import com.pathplanner.lib.controllers.PathFollowingController;
 import com.pathplanner.lib.path.GoalEndState;
 import com.pathplanner.lib.path.PathConstraints;
 import com.pathplanner.lib.path.PathPlannerPath;
@@ -30,6 +37,7 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.AutoConstants;
 import frc.robot.Constants.DriveConstants;
@@ -72,6 +80,12 @@ public class DriveSubsystem extends SubsystemBase {
     m_backLeft,
     m_backRight
   };
+  
+  // Creates new PP Holonomic Controller
+  private PPHolonomicDriveController controller = new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
+          new PIDConstants(5.0, 0.0, 0.0), // Translation PID constants
+          new PIDConstants(5.0, 0.0, 0.0) // Rotation PID constants
+        );
 
   // Creates the Gyro for Swerve Magic
   private final AHRS m_gyro = new AHRS(NavXComType.kMXP_SPI);
@@ -122,10 +136,7 @@ public class DriveSubsystem extends SubsystemBase {
       this::setPose, // Method to reset poseEstimator (will be called if your auto has a starting pose)
       () -> DriveConstants.kDriveKinematics.toChassisSpeeds(getModuleStates()), // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
       this::runVelocity, // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
-        new PPHolonomicDriveController( // PPHolonomicController is the built in path following controller for holonomic drive trains
-          new PIDConstants(5.0, 0.0, 0.0), // Translation PID constants
-          new PIDConstants(5.0, 0.0, 0.0) // Rotation PID constants
-        ),
+        controller,
       config, // The robot configuration
       () -> {
 
@@ -252,10 +263,20 @@ public class DriveSubsystem extends SubsystemBase {
       null, // The ideal starting state, this is only relevant for pre-planned paths, so can be null for on-the-fly paths.
       new GoalEndState(0, desiredPose.getRotation()) 
     );
-    AutoBuilder.followPath(path).schedule();
+    Command driveTo = new frc.robot.commands.PathfindingCommand(
+      path, 
+      AutoConstants.kconstraints,
+      () -> getPose(), 
+      () -> DriveConstants.kDriveKinematics.toChassisSpeeds(getModuleStates()), 
+      (ChassisSpeeds speeds) -> {}, 
+      new PPLTVController(0), 
+      config,
+      1.0,
+      () -> true,
+      () -> false,
+      5);
+    driveTo.schedule();
   }
-
-  // Returns currently estimated pose of robot
   public Pose2d getPose() {
     return m_poseEstimator.getEstimatedPosition();
   }
@@ -359,6 +380,8 @@ public class DriveSubsystem extends SubsystemBase {
       modules[i].setDesiredState(setpointStates[i]);
     }
   }
+  
+
 
   // Resets all drive encoders to read position zero
   public void resetEncoders() {

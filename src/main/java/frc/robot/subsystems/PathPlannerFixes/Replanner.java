@@ -34,7 +34,6 @@ public class Replanner {
     /** The error spike threshold, in meters, that will cause the path to be replanned */
     public final double dynamicReplanningErrorSpikeThreshold;
 
-    public final PathPlannerPath path;
     /**
      * Create a path replanning configuration
      *
@@ -48,12 +47,10 @@ public class Replanner {
      *     cause the path to be replanned
      */
     public Replanner(
-        PathPlannerPath path,
         boolean enableInitialReplanning,
         boolean enableDynamicReplanning,
         double dynamicReplanningTotalErrorThreshold,
         double dynamicReplanningErrorSpikeThreshold) {
-        this.path=path;
         this.enableInitialReplanning = enableInitialReplanning;
         this.enableDynamicReplanning = enableDynamicReplanning;
         this.dynamicReplanningTotalErrorThreshold = dynamicReplanningTotalErrorThreshold;
@@ -68,11 +65,11 @@ public class Replanner {
      * @param enableDynamicReplanning Should the path be replanned if the error grows too large or if
      *     a large error spike happens while following the path?
      */
-    public Replanner(PathPlannerPath path, boolean enableInitialReplanning, boolean enableDynamicReplanning) {
-        this(path, enableInitialReplanning, enableDynamicReplanning, 1.0, 0.25);
+    public Replanner(boolean enableInitialReplanning, boolean enableDynamicReplanning) {
+        this(enableInitialReplanning, enableDynamicReplanning, 1.0, 0.25);
     }
 
-    public PathPlannerPath replan(Pose2d startingPose, ChassisSpeeds currentSpeeds) {
+    public PathPlannerPath replan(PathPlannerPath path, Pose2d startingPose, ChassisSpeeds currentSpeeds) {
 
         ChassisSpeeds currentFieldRelativeSpeeds =
             ChassisSpeeds.fromFieldRelativeSpeeds(
@@ -98,10 +95,10 @@ public class Replanner {
         int closestPointIdx = 0;
         Translation2d comparePoint =
             (robotNextControl != null) ? robotNextControl : startingPose.getTranslation();
-        double closestDist = positionDelta(comparePoint, getPoint(closestPointIdx).position);
+        double closestDist = positionDelta(comparePoint, getPoint(path, closestPointIdx).position);
 
         for (int i = 1; i < path.numPoints(); i++) {
-        double d = positionDelta(comparePoint, getPoint(i).position);
+        double d = positionDelta(comparePoint, getPoint(path, i).position);
 
         if (d < closestDist) {
             closestPointIdx = i;
@@ -110,7 +107,7 @@ public class Replanner {
         }
 
         if (closestPointIdx == path.numPoints() - 1) {
-        Rotation2d heading = getPoint(path.numPoints() - 1).position.minus(comparePoint).getAngle();
+        Rotation2d heading = getPoint(path, path.numPoints() - 1).position.minus(comparePoint).getAngle();
 
         if (robotNextControl == null) {
             robotNextControl =
@@ -118,39 +115,39 @@ public class Replanner {
         }
 
         Rotation2d endPrevControlHeading =
-            getPoint(path.numPoints() - 1).position.minus(robotNextControl).getAngle();
+            getPoint(path, path.numPoints() - 1).position.minus(robotNextControl).getAngle();
 
         Translation2d endPrevControl =
-            getPoint(path.numPoints() - 1)
+            getPoint(path, path.numPoints() - 1)
                 .position
                 .minus(new Translation2d(closestDist / 3.0, endPrevControlHeading));
         // Throw out rotation targets, event markers, and constraint zones since we are skipping all
         // of the path
         // CHECK -- liam
         return new PathPlannerPath(
-          List.of(
-              new Waypoint(startingPose.getTranslation(), startingPose.getTranslation(), startingPose.getTranslation()),
-              new Waypoint(robotNextControl, robotNextControl, robotNextControl),
-              new Waypoint(endPrevControl, endPrevControl, endPrevControl),
-              new Waypoint(getPoint(path.numPoints() - 1).position, getPoint(path.numPoints() - 1).position, getPoint(path.numPoints() - 1).position)),
+          PathPlannerPath.waypointsFromPoses(
+              startingPose,
+              new Pose2d(robotNextControl, startingPose.getRotation()),
+              new Pose2d(endPrevControl, endPrevControlHeading),
+              new Pose2d(getPoint(path, path.numPoints()-1).position, getPoint(path, path.numPoints()-1).rotationTarget.rotation())),
           path.getGlobalConstraints(),
           path.getIdealStartingState(),
           path.getGoalEndState(),
           path.isReversed());
         } else if ((closestPointIdx == 0 && robotNextControl == null)
-            || (Math.abs(closestDist - startingPose.getTranslation().getDistance(getPoint(0).position))
+            || (Math.abs(closestDist - startingPose.getTranslation().getDistance(getPoint(path, 0).position))
                     <= 0.25
                 && linearVel < 0.1)) {
-        double distToStart = startingPose.getTranslation().getDistance(getPoint(0).position);
+        double distToStart = startingPose.getTranslation().getDistance(getPoint(path, 0).position);
 
-        Rotation2d heading = getPoint(0).position.minus(startingPose.getTranslation()).getAngle();
+        Rotation2d heading = getPoint(path, 0).position.minus(startingPose.getTranslation()).getAngle();
         robotNextControl =
             startingPose.getTranslation().plus(new Translation2d(distToStart / 3.0, heading));
 
         Rotation2d joinHeading =
             path.getAllPathPoints().get(0).position.minus(path.getAllPathPoints().get(1).position).getAngle();
         Translation2d joinPrevControl =
-            getPoint(0).position.plus(new Translation2d(distToStart / 2.0, joinHeading));
+            getPoint(path, 0).position.plus(new Translation2d(distToStart / 2.0, joinHeading));
 
         if (path.getWaypoints().isEmpty()) {
             // We don't have any bezier points to reference
@@ -159,7 +156,7 @@ public class Replanner {
                     startingPose.getTranslation(),
                     robotNextControl,
                     joinPrevControl,
-                    getPoint(0).position,
+                    getPoint(path, 0).position,
                     false);
             List<PathPoint> replannedPoints = new ArrayList<>();
             replannedPoints.addAll(joinSegment.getSegmentPoints());
@@ -170,9 +167,10 @@ public class Replanner {
             // We can use the bezier points
             List<Waypoint> replannedBezier = new ArrayList<>();
             replannedBezier.addAll(
-                List.of(new Waypoint(startingPose.getTranslation(),startingPose.getTranslation(),startingPose.getTranslation()), 
-                new Waypoint(robotNextControl,robotNextControl,robotNextControl), 
-                new Waypoint(joinPrevControl,joinPrevControl,joinPrevControl)));
+                PathPlannerPath.waypointsFromPoses(
+                    startingPose, 
+                    new Pose2d(robotNextControl,startingPose.getRotation()), 
+                    new Pose2d(joinPrevControl,startingPose.getRotation())));
             replannedBezier.addAll(path.getWaypoints());
             // keep all rotations, markers, and zones and increment waypoint pos by 1
             return new PathPlannerPath(
@@ -207,15 +205,15 @@ public class Replanner {
 
         int joinAnchorIdx = path.numPoints() - 1;
         for (int i = closestPointIdx; i < path.numPoints(); i++) {
-        if (getPoint(i).distanceAlongPath
-            >= getPoint(closestPointIdx).distanceAlongPath + closestDist) {
+        if (getPoint(path, i).distanceAlongPath
+            >= getPoint(path, closestPointIdx).distanceAlongPath + closestDist) {
             joinAnchorIdx = i;
             break;
         }
         }
 
-        Translation2d joinPrevControl = getPoint(closestPointIdx).position;
-        Translation2d joinAnchor = getPoint(joinAnchorIdx).position;
+        Translation2d joinPrevControl = getPoint(path, closestPointIdx).position;
+        Translation2d joinAnchor = getPoint(path, joinAnchorIdx).position;
 
         if (robotNextControl == null) {
         double robotToJoinDelta = startingPose.getTranslation().getDistance(joinAnchor);
@@ -228,10 +226,11 @@ public class Replanner {
         // Throw out rotation targets, event markers, and constraint zones since we are skipping all
         // of the path
         return new PathPlannerPath(
-            List.of(new Waypoint(startingPose.getTranslation(),startingPose.getTranslation(),startingPose.getTranslation()), 
-            new Waypoint(robotNextControl,robotNextControl,robotNextControl), 
-            new Waypoint(joinPrevControl,joinPrevControl,joinPrevControl), 
-            new Waypoint(joinAnchor,joinAnchor,joinAnchor)), // CHECK -- liam
+            PathPlannerPath.waypointsFromPoses(
+                startingPose, 
+                new Pose2d(robotNextControl,startingPose.getRotation()), 
+                new Pose2d(joinPrevControl,getPoint(path, closestPointIdx).rotationTarget.rotation()), 
+                new Pose2d(joinAnchor,getPoint(path, joinAnchorIdx).rotationTarget.rotation())), // CHECK -- liam
             path.getGlobalConstraints(),
             path.getIdealStartingState(),
             path.getGoalEndState(),
@@ -276,14 +275,14 @@ public class Replanner {
 
         List<Waypoint> replannedBezier = new ArrayList<>();
         replannedBezier.addAll(
-            List.of(
+            PathPlannerPath.waypointsFromPoses(
                 // CHECK -- liam
-                new Waypoint(startingPose.getTranslation(),startingPose.getTranslation(),startingPose.getTranslation()),
-                new Waypoint(robotNextControl,robotNextControl,robotNextControl),
-                new Waypoint(joinPrevControl,joinPrevControl,joinPrevControl),
-                new Waypoint(joinAnchor,joinAnchor,joinAnchor),
-                new Waypoint(joinNextControl,joinNextControl,joinNextControl),
-                new Waypoint(nextWaypointPrevControl,nextWaypointPrevControl,nextWaypointPrevControl)));
+                startingPose,
+                new Pose2d(robotNextControl,startingPose.getRotation()), 
+                new Pose2d(joinPrevControl,getPoint(path, closestPointIdx).rotationTarget.rotation()), 
+                new Pose2d(joinAnchor,getPoint(path, joinAnchorIdx).rotationTarget.rotation()),
+                new Pose2d(joinNextControl, getPoint(path, joinAnchorIdx).rotationTarget.rotation()),
+                new Pose2d(nextWaypointPrevControl, getPoint(path, bezierPointIdx).rotationTarget.rotation())));
         replannedBezier.addAll(path.getWaypoints().subList(bezierPointIdx, path.getWaypoints().size()));
 
         double segment1Length = 0;
@@ -354,10 +353,10 @@ public class Replanner {
         for (EventMarker m : path.getEventMarkers()) {
         if (m.endPosition() >= nextWaypointIdx) {
             mappedMarkers.add(
-                new EventMarker("", m.endPosition() - nextWaypointIdx + 2, m.command()));
+                new EventMarker("", m.endPosition() - nextWaypointIdx + 2, m.command())); // CHECK -- liam
         } else if (m.endPosition() >= nextWaypointIdx - 1) {
             double pct = m.endPosition() - (nextWaypointIdx - 1);
-            mappedMarkers.add(new EventMarker("", mapPct(pct, segment1Pct), m.command()));
+            mappedMarkers.add(new EventMarker("", mapPct(pct, segment1Pct), m.command())); // CHECK -- liam
         }
         }
 
@@ -375,7 +374,7 @@ public class Replanner {
             path.getGoalEndState(),
             path.isReversed());
   }
-  public PathPoint getPoint(int index) {
+  public PathPoint getPoint(PathPlannerPath path, int index) {
     return path.getAllPathPoints().get(index);
   }
   private static double positionDelta(Translation2d a, Translation2d b) {
