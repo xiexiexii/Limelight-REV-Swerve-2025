@@ -213,6 +213,7 @@ public class DriveSubsystem extends SubsystemBase {
     m_field.setRobotPose(m_poseEstimator.getEstimatedPosition());
     SmartDashboard.putNumber("local x", m_poseEstimator.getEstimatedPosition().getX());
     SmartDashboard.putNumber("local y", m_poseEstimator.getEstimatedPosition().getY());
+    SmartDashboard.putNumber("Direction Of Travel", directionOfTravel().getDegrees());
   }
 
   // Check if pose estimate is valid
@@ -251,8 +252,9 @@ public class DriveSubsystem extends SubsystemBase {
 
     // Create a list of waypoints from poses. Each pose represents one waypoint.
     // The rotation component of the pose should be the direction of travel. Do not use holonomic rotation.
+    // CHECK
     List<Waypoint> waypoints = PathPlannerPath.waypointsFromPoses(
-      getPose(),
+      new Pose2d(getPose().getTranslation(), directionOfTravel()),
       desiredPose
     );
 
@@ -268,13 +270,14 @@ public class DriveSubsystem extends SubsystemBase {
       AutoConstants.kconstraints,
       () -> getPose(), 
       () -> DriveConstants.kDriveKinematics.toChassisSpeeds(getModuleStates()), 
-      (ChassisSpeeds speeds) -> {}, 
-      new PPLTVController(0), 
+      (ChassisSpeeds speeds) -> runVelocity(speeds), 
+      controller, 
       config,
-      1.0,
+      0.0,
       () -> true,
       () -> false,
-      5);
+      5,
+      this);
     driveTo.schedule();
   }
   public Pose2d getPose() {
@@ -381,7 +384,13 @@ public class DriveSubsystem extends SubsystemBase {
     }
   }
   
-
+  //
+  public Rotation2d directionOfTravel() {
+    ChassisSpeeds chassisSpeed = DriveConstants.kDriveKinematics.toChassisSpeeds(getModuleStates());
+    Rotation2d gyro = getPose().getRotation();
+    return new Rotation2d(Math.atan2(chassisSpeed.vxMetersPerSecond * gyro.getCos() - chassisSpeed.vyMetersPerSecond * gyro.getSin(),
+      chassisSpeed.vyMetersPerSecond * gyro.getCos() + chassisSpeed.vxMetersPerSecond * gyro.getSin()));
+}
 
   // Resets all drive encoders to read position zero
   public void resetEncoders() {
@@ -411,4 +420,5 @@ public class DriveSubsystem extends SubsystemBase {
   public Command getAuto(String autoName) {
     return AutoBuilder.buildAuto(autoName);
   }
+
 }

@@ -8,14 +8,12 @@ import com.pathplanner.lib.controllers.PathFollowingController;
 import com.pathplanner.lib.path.*;
 import com.pathplanner.lib.pathfinding.Pathfinding;
 import com.pathplanner.lib.trajectory.PathPlannerTrajectory;
-import com.pathplanner.lib.trajectory.PathPlannerTrajectoryState;
 import com.pathplanner.lib.util.*;
 import edu.wpi.first.hal.FRCNetComm.tResourceType;
 import edu.wpi.first.hal.HAL;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.wpilibj.Timer;
@@ -23,10 +21,9 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.Subsystem;
-import frc.robot.Robot;
+import frc.robot.Constants.AutoConstants;
 import frc.robot.subsystems.PathPlannerFixes.Replanner;
 
-import java.lang.invoke.VarHandle;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -111,9 +108,8 @@ public class PathfindingCommand extends Command {
     }
 
     this.targetPath = targetPath;
-    this.targetPose = new Pose2d(this.targetPath.getPoint(0).position, targetRotation);
-    this.originalTargetPose =
-        new Pose2d(this.targetPose.getTranslation(), this.targetPose.getRotation());
+    this.targetPose = new Pose2d(this.targetPath.getPoint(targetPath.numPoints()-1).position, targetRotation);
+    this.originalTargetPose = this.targetPose;
     this.goalEndState = new GoalEndState(goalEndVel, targetRotation);
     this.constraints = constraints;
     this.controller = controller;
@@ -168,8 +164,7 @@ public class PathfindingCommand extends Command {
 
     this.targetPath = null;
     this.targetPose = targetPose;
-    this.originalTargetPose =
-        new Pose2d(this.targetPose.getTranslation(), this.targetPose.getRotation());
+    this.originalTargetPose = this.targetPose;
     this.goalEndState = new GoalEndState(goalEndVel, targetPose.getRotation());
     this.constraints = constraints;
     this.controller = controller;
@@ -208,6 +203,8 @@ public class PathfindingCommand extends Command {
         targetPose = FlippingUtil.flipFieldPose(this.originalTargetPose);
         goalEndState = new GoalEndState(goalEndState.velocity(), targetPose.getRotation());
       }
+      // CHECK
+      currentTrajectory = targetPath.generateTrajectory(speedsSupplier.get(), poseSupplier.get().getRotation(), robotConfig);
     }
 
     if (currentPose.getTranslation().getDistance(targetPose.getTranslation()) < 0.5) {
@@ -227,7 +224,6 @@ public class PathfindingCommand extends Command {
       return;
     }
     schedulerCounter++;
-    System.out.println(schedulerCounter);
     Pose2d currentPose = poseSupplier.get();
     ChassisSpeeds currentSpeeds = speedsSupplier.get();
 
@@ -283,7 +279,7 @@ public class PathfindingCommand extends Command {
             ChassisSpeeds.fromRobotRelativeSpeeds(currentSpeeds, currentPose.getRotation());
         Rotation2d currentHeading =
             new Rotation2d(
-                fieldRelativeSpeeds.vxMetersPerSecond, fieldRelativeSpeeds.vyMetersPerSecond);
+                Math.atan2(fieldRelativeSpeeds.vxMetersPerSecond, fieldRelativeSpeeds.vyMetersPerSecond));
         Rotation2d headingError = currentHeading.minus(closestState1.heading);
         boolean onHeading =
             Math.hypot(currentSpeeds.vxMetersPerSecond, currentSpeeds.vyMetersPerSecond) < 1.0
@@ -405,7 +401,7 @@ public class PathfindingCommand extends Command {
     PathPlannerLogging.logActivePath(null);
   }
 
-  private void replanPath(PathPlannerPath currentpath, Pose2d currentPose, ChassisSpeeds currentSpeeds) {
+  private void replanPath(PathPlannerPath currentPath, Pose2d currentPose, ChassisSpeeds currentSpeeds) {
     PathPlannerPath replanned = replanner.replan(currentPath, currentPose, currentSpeeds);
     currentTrajectory = replanned.generateTrajectory(currentSpeeds, currentPose.getRotation(), robotConfig);
     PathPlannerLogging.logActivePath(replanned);
@@ -415,7 +411,7 @@ public class PathfindingCommand extends Command {
   public static Command warmupCommand() {
     return new PathfindingCommand(
             new Pose2d(15.0, 4.0, Rotation2d.fromDegrees(180)),
-            new PathConstraints(4, 3, 4, 4),
+            AutoConstants.kconstraints,
             0.0,
             () -> new Pose2d(1.5, 4, new Rotation2d()),
             () -> new ChassisSpeeds(),
@@ -435,16 +431,3 @@ public class PathfindingCommand extends Command {
         .ignoringDisable(true);
   }
 }
-// public PathfindingCommand(
-//   Pose2d targetPose,
-//   PathConstraints constraints,
-//   double goalEndVel,
-//   Supplier<Pose2d> poseSupplier,
-//   Supplier<ChassisSpeeds> speedsSupplier,
-//   Consumer<ChassisSpeeds> outputRobotRelative,
-//   PathFollowingController controller,
-//   RobotConfig robotConfig,
-//   double rotationDelayDistance,
-//   BooleanSupplier replanBoolean,
-//   int schedulerRuns,
-//   Subsystem... requirements) 

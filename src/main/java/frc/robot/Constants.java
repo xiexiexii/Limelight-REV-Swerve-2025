@@ -104,10 +104,10 @@ public final class Constants {
 
     // For PathFinding
     public static final PathConstraints kconstraints = new PathConstraints(
-      3.0, 
-      4.0,
-      Units.degreesToRadians(540), 
-      Units.degreesToRadians(720)
+      0.5, 
+      1.0,
+      Units.degreesToRadians(90), 
+      Units.degreesToRadians(90)
     );
   }
 
@@ -170,6 +170,6 @@ public final class Constants {
   }
 
   public static final class LocalizationConstants {
-    public static final Pose2d kRedReefKL = new Pose2d(13.97, 1.97, Rotation2d.fromDegrees(112));  
+    public static final Pose2d kRedReefKL = new Pose2d(15.06, 4.11, Rotation2d.fromDegrees(180));  
   }
 }
