@@ -318,19 +318,17 @@ public class PathfindingCommand extends Command {
       timer.reset();
       timer.start();
     }
-    var targetState = currentTrajectory.sample(timer.get() + timeOffset);
     if (currentTrajectory != null) {
+      var targetState = currentTrajectory.sample(timer.get() + timeOffset);
+
       if (replanBoolean.getAsBoolean()) {
         if (schedulerCounter%schedulerRuns==0){
-          if (targetPath.getAllPathPoints().get(targetPath.getAllPathPoints().size()-1).position.getDistance(currentPose.getTranslation())<0.5){ // CHECK
-            replanPath(targetPath, currentPose, currentSpeeds);
-            timer.reset();
-            timeOffset = 0.0;
-            targetState = currentTrajectory.sample(0);
-          }
+          currentPath = replanPath(currentPath, currentPose, currentSpeeds);
+          timer.reset();
+          timeOffset = 0.0;
+          targetState = currentTrajectory.sample(0);
         }
       }
-
       // Set the target rotation to the starting rotation if we have not yet traveled the rotation
       // delay distance
       if (currentPose.getTranslation().getDistance(startingPose.getTranslation())
@@ -365,6 +363,7 @@ public class PathfindingCommand extends Command {
   @Override
   public boolean isFinished() {
     if (finish) {
+      System.out.println(0);
       return true;
     }
 
@@ -376,12 +375,18 @@ public class PathfindingCommand extends Command {
           Math.hypot(currentSpeeds.vxMetersPerSecond, currentSpeeds.vyMetersPerSecond);
       double stoppingDistance =
           Math.pow(currentVel, 2) / (2 * constraints.maxAccelerationMPSSq());
-
+      if (currentPose.getTranslation().getDistance(targetPose.getTranslation())
+      <= stoppingDistance){
+        System.out.println(1);
+      }
       return currentPose.getTranslation().getDistance(targetPose.getTranslation())
           <= stoppingDistance;
     }
 
     if (currentTrajectory != null) {
+      if (timer.hasElapsed(currentTrajectory.getTotalTimeSeconds() - timeOffset)){
+        System.out.println(2);
+      }
       return timer.hasElapsed(currentTrajectory.getTotalTimeSeconds() - timeOffset);
     }
 
@@ -401,11 +406,12 @@ public class PathfindingCommand extends Command {
     PathPlannerLogging.logActivePath(null);
   }
 
-  private void replanPath(PathPlannerPath currentPath, Pose2d currentPose, ChassisSpeeds currentSpeeds) {
+  private PathPlannerPath replanPath(PathPlannerPath currentPath, Pose2d currentPose, ChassisSpeeds currentSpeeds) {
     PathPlannerPath replanned = replanner.replan(currentPath, currentPose, currentSpeeds);
     currentTrajectory = replanned.generateTrajectory(currentSpeeds, currentPose.getRotation(), robotConfig);
     PathPlannerLogging.logActivePath(replanned);
     PPLibTelemetry.setCurrentPath(replanned);
+    return replanned;
   }
 
   public static Command warmupCommand() {

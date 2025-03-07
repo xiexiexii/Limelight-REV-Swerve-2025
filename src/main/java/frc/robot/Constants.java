@@ -143,14 +143,11 @@ public final class Constants {
     public static final double kYawValidRange = 30;
 
     // AimNRange Reef Right
-    public static final double kAimReefRightErrorLimit = 0.5;
-    public static final double kAimReefRightTarget = 0;
+    public static final double kThetaErrorLimit = 0.5;
 
-    public static final double kRangeReefRightErrorLimit = 0.025;
-    public static final double kRangeReefRightTarget = -0.67;
+    public static final double kXErrorLimit = 0.025;
 
-    public static final double kStrafeReefRightErrorLimit = 0.025;
-    public static final double kStrafeReefRightTarget = 0.10;
+    public static final double kYErrorLimit = 0.025;
 
     // AimNRange Reef Left
     public static final double kAimReefLeftErrorLimit = 0.5;

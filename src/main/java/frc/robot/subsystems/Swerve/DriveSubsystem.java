@@ -136,7 +136,7 @@ public class DriveSubsystem extends SubsystemBase {
       this::setPose, // Method to reset poseEstimator (will be called if your auto has a starting pose)
       () -> DriveConstants.kDriveKinematics.toChassisSpeeds(getModuleStates()), // ChassisSpeeds supplier. MUST BE ROBOT RELATIVE
       this::runVelocity, // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
-        controller,
+      controller,
       config, // The robot configuration
       () -> {
 
@@ -210,7 +210,7 @@ public class DriveSubsystem extends SubsystemBase {
       }
     }
     
-    m_field.setRobotPose(m_poseEstimator.getEstimatedPosition());
+    // m_field.setRobotPose(m_poseEstimator.getEstimatedPosition());
     SmartDashboard.putNumber("local x", m_poseEstimator.getEstimatedPosition().getX());
     SmartDashboard.putNumber("local y", m_poseEstimator.getEstimatedPosition().getY());
     SmartDashboard.putNumber("Direction Of Travel", directionOfTravel().getDegrees());

@@ -1,13 +1,13 @@
 package frc.robot.subsystems.PathPlannerFixes;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import com.pathplanner.lib.path.ConstraintsZone;
 import com.pathplanner.lib.path.EventMarker;
-import com.pathplanner.lib.path.GoalEndState;
 import com.pathplanner.lib.path.PathPlannerPath;
 import com.pathplanner.lib.path.PathPoint;
 import com.pathplanner.lib.path.RotationTarget;
@@ -71,9 +71,6 @@ public class Replanner {
     }
 
     public PathPlannerPath replan(PathPlannerPath path, Pose2d startingPose, ChassisSpeeds currentSpeeds) {
-        if (path.getGoalEndState()==null){
-            return path;
-        }
         ChassisSpeeds currentFieldRelativeSpeeds =
             ChassisSpeeds.fromFieldRelativeSpeeds(
                 currentSpeeds, startingPose.getRotation().unaryMinus());
@@ -127,16 +124,13 @@ public class Replanner {
         // Throw out rotation targets, event markers, and constraint zones since we are skipping all
         // of the path
         // CHECK -- liam
-        return new PathPlannerPath(
-          PathPlannerPath.waypointsFromPoses(
-              startingPose,
-              new Pose2d(robotNextControl, startingPose.getRotation()),
-              new Pose2d(endPrevControl, endPrevControlHeading),
-              new Pose2d(getPoint(path, path.numPoints()-1).position, getPoint(path, path.numPoints()-1).rotationTarget.rotation())),
-          path.getGlobalConstraints(),
-          path.getIdealStartingState(),
-          path.getGoalEndState(),
-          path.isReversed());
+        return PathPlannerPath.fromPathPoints(
+              Arrays.asList(new PathPoint(startingPose.getTranslation()),
+              new PathPoint(robotNextControl),
+              new PathPoint(endPrevControl),
+              getPoint(path, path.numPoints()-1)),
+              path.getGlobalConstraints(),
+              path.getGoalEndState());
         } else if ((closestPointIdx == 0 && robotNextControl == null)
             || (Math.abs(closestDist - startingPose.getTranslation().getDistance(getPoint(path, 0).position))
                     <= 0.25
@@ -172,8 +166,8 @@ public class Replanner {
             replannedBezier.addAll(
                 PathPlannerPath.waypointsFromPoses(
                     startingPose, 
-                    new Pose2d(robotNextControl,startingPose.getRotation()), 
-                    new Pose2d(joinPrevControl,startingPose.getRotation())));
+                    new Pose2d(robotNextControl,path.getGoalEndState().rotation()), 
+                    new Pose2d(joinPrevControl,path.getGoalEndState().rotation())));
             replannedBezier.addAll(path.getWaypoints());
             // keep all rotations, markers, and zones and increment waypoint pos by 1
             return new PathPlannerPath(
